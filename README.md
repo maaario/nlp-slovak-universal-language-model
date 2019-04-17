@@ -20,5 +20,6 @@ These instructions will detail how to run these tools to prepare the dataset and
 
 ### Prepare wikipedia
 
-Run `make dataset/extracted-${LANG}wiki`, where `$LANG` is your language (by default `sk`). Please
-note, that this may take a long time and cause a significant amount of network traffic.
+Run `make dataset/train.csv`. Please note, that this may take a long time and cause a significant
+amount of network traffic. If you want to prepare the dataset for another language, run `make
+LANG=sk dataset/train.csv`

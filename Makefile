@@ -1,12 +1,17 @@
-LANG := "sk"
+LANG := sk
 
+.DEFAULT: all
 .PRECIOUS: dataset/$(LANG)wiki-latest-pages-articles.xml
 
-dataset/%wiki-latest-pages-articles.xml:
-	curl https://dumps.wikimedia.org/$*wiki/latest/$*wiki-latest-pages-articles.xml.bz2 | bunzip2 -c > $@
+all: dataset/train.csv dataset/val.csv
 
-dataset/extracted-%wiki: dataset/%wiki-latest-pages-articles.xml
-	mkdir -p $@
-	vendor/wikiextractor/WikiExtractor.py --json -o $@ $^
+dataset/$(LANG)wiki-latest-pages-articles.xml:
+	curl https://dumps.wikimedia.org/$(LANG)wiki/latest/$(LANG)wiki-latest-pages-articles.xml.bz2 | \
+	bunzip2 -c > $@
 
-all: dataset/extracted-$(LANG)wiki
+dataset/train.csv dataset/val.csv: dataset/$(LANG)wiki-latest-pages-articles.xml
+	tmp=$$(mktemp -d) \
+	&& vendor/wikiextractor/WikiExtractor.py --json -o "$${tmp}" $^ \
+	&& utils/prepare-training-dataset.py -i "$${tmp}" --output-train dataset/train.csv \
+																								    --output-val dataset/val.csv \
+	&& rm -rf "$${tmp}"
