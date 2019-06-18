@@ -6,6 +6,7 @@ LANG := sk
 all: dataset/train.csv dataset/val.csv
 
 dataset/$(LANG)wiki-latest-pages-articles.xml:
+	mkdir -p dataset
 	curl https://dumps.wikimedia.org/$(LANG)wiki/latest/$(LANG)wiki-latest-pages-articles.xml.bz2 | \
 	bunzip2 -c > $@
 

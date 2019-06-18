@@ -11,7 +11,7 @@ You will need the following:
 
   - `curl`
   - `make`
-  - `python3`
+  - `python3.7`
 
 
 ## Instructions
