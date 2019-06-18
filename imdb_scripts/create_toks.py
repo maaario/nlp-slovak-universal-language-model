@@ -30,9 +30,11 @@ def get_texts(df, n_lbls, lang='en'):
     return tok, list(labels)
 
 
-def get_all(df, n_lbls, lang='en'):
+def get_all(df, n_lbls, lang='en', num_chunks=1):
     tok, labels = [], []
     for i, r in enumerate(df):
+        if i >= num_chunks:
+            break
         print(i)
         tok_, labels_ = get_texts(r, n_lbls, lang=lang)
         tok += tok_
@@ -40,8 +42,9 @@ def get_all(df, n_lbls, lang='en'):
     return tok, labels
 
 
-def create_toks(dir_path, chunksize=24000, n_lbls=1, lang='en'):
-    print(f'dir_path {dir_path} chunksize {chunksize} n_lbls {n_lbls} lang {lang}')
+def create_toks(dir_path, chunksize=24000, n_lbls=1, lang='en', max_total=50000):
+    num_chunks = max_total // chunksize
+    print(f'dir_path {dir_path} chunksize {chunksize} n_lbls {n_lbls} lang {lang} max_total {max_total}')
     try:
         spacy.load(lang)
     except OSError:
@@ -57,8 +60,8 @@ def create_toks(dir_path, chunksize=24000, n_lbls=1, lang='en'):
 
     tmp_path = dir_path / 'tmp'
     tmp_path.mkdir(exist_ok=True)
-    tok_trn, trn_labels = get_all(df_trn, n_lbls, lang=lang)
-    tok_val, val_labels = get_all(df_val, n_lbls, lang=lang)
+    tok_trn, trn_labels = get_all(df_trn, n_lbls, lang=lang, num_chunks=num_chunks)
+    tok_val, val_labels = get_all(df_val, n_lbls, lang=lang, num_chunks=num_chunks)
 
     np.save(tmp_path / 'tok_trn.npy', tok_trn)
     np.save(tmp_path / 'tok_val.npy', tok_val)

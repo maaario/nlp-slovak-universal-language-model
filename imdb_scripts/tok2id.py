@@ -9,8 +9,8 @@ def tok2id(dir_path, max_vocab=30000, min_freq=1):
     tmp_path = p / 'tmp'
     assert tmp_path.exists(), f'Error: {tmp_path} does not exist.'
 
-    trn_tok = np.load(tmp_path / 'tok_trn.npy')
-    val_tok = np.load(tmp_path / 'tok_val.npy')
+    trn_tok = np.load(tmp_path / 'tok_trn.npy', allow_pickle=True)
+    val_tok = np.load(tmp_path / 'tok_val.npy', allow_pickle=True)
 
     freq = Counter(p for o in trn_tok for p in o)
     print(freq.most_common(25))
