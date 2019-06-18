@@ -18,6 +18,12 @@ You will need the following:
 
 These instructions will detail how to run these tools to prepare the dataset and train the model.
 
+### Download the repository
+```
+git clone
+git submodule update --init
+```
+
 ### Prepare wikipedia
 
 Run `make dataset/train.csv`. Please note, that this may take a long time and cause a significant
