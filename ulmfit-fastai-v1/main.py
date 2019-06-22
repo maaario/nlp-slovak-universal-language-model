@@ -1,3 +1,4 @@
+import json
 from math import exp
 import os
 import pickle
@@ -11,15 +12,11 @@ import torch
 from utils import *
 
 """
-python main.py prepare_lm_dataset sk-featured-smaller.csv lm_dataset --min_freq=2
-python main.py prepare_lm_dataset zlocin-a-trest.csv zlocin-a-trest --min_freq=1
-
-python main.py train_lm lm_dataset trained_lm --epochs=5
-
-python main.py evaluate_lm sk-featured-smaller.csv trained_lm
-python main.py evaluate_lm zlocin-a-trest.csv trained_lm
-
-python main.py prepare_clas_dataset clas-alza.csv clas_dataset
+Example usage:
+python main.py prepare_lm_dataset lm_dataset.csv lm_dataset
+python main.py train_lm lm_dataset trained_lm
+python main.py evaluate_lm lm_dataset.csv trained_lm    # optional
+python main.py prepare_clas_dataset clas_dataset.csv clas_dataset
 """
 
 
@@ -48,7 +45,7 @@ def prepare_lm_dataset(input_path, output_dir, valid_split=0.2, min_freq=2, seed
 
 def prepare_clas_dataset(input_path, output_dir, valid_split=0.2, seed=42):
     """
-    Reads .csv file with labels in first column, texts in second columns.
+    Reads .csv file with texts in first column and labels in second column.
     Splits it into training and validation sets, tokenizes and saves datasets for fine-tuning and
     for classification.
     """
@@ -60,9 +57,9 @@ def prepare_clas_dataset(input_path, output_dir, valid_split=0.2, seed=42):
     output_dir = Path(output_dir)
 
     data_finetune_lm = TextLMDataBunch.from_df(
-        output_dir, train_df, valid_df, tokenizer=Tokenizer(lang="xx"))
+        output_dir, train_df, valid_df, tokenizer=Tokenizer(lang="xx"), text_cols=0)
     data_clas = TextClasDataBunch.from_df(
-        output_dir, train_df, valid_df, tokenizer=Tokenizer(lang="xx"),
+        output_dir, train_df, valid_df, tokenizer=Tokenizer(lang="xx", text_cols=0, label_cols=1),
         vocab=data_finetune_lm.train_ds.vocab, bs=32)
 
     data_finetune_lm.save('data_finetune_lm.pkl')
@@ -71,17 +68,19 @@ def prepare_clas_dataset(input_path, output_dir, valid_split=0.2, seed=42):
     # TODO: if we want e.g. for fastext, also store .txt versions of tokenized texts
 
 
-def train_lm(data_dir, model_dir, epochs=12, lr=3e-4):
+def train_lm(data_dir, model_dir, epochs=12, lr=3e-4, pretrained=False):
     """
-    Trains new language model using the provided dataset.
+    Trains new language model (or continues in training if `pretrained is set`) using
+    the provided dataset.
     """
     data_lm = load_data(data_dir, 'data_lm.pkl')
 
-    awd_lstm_lm_config = dict(
+    model_hparams = dict(
         emb_sz=100, n_hid=256, n_layers=3, pad_token=1, qrnn=False, bidir=False, output_p=0.1,
         hidden_p=0.15, input_p=0.25, embed_p=0.02, weight_p=0.2, tie_weights=True, out_bias=True)
 
-    learner = language_model_learner(data_lm, AWD_LSTM, pretrained=False, config=awd_lstm_lm_config)
+    learner = lm_learner(
+        data_lm, AWD_LSTM, model_dir, pretrained=pretrained, config=model_hparams)
     learner.fit(epochs, lr)
 
     loss, acc = learner.validate(learner.data.train_dl)
@@ -93,11 +92,12 @@ def train_lm(data_dir, model_dir, epochs=12, lr=3e-4):
         os.mkdir(model_dir)
     model_dir = Path(model_dir)
     torch.save(learner.model.state_dict(), model_dir / "lm_wgts.pth")
-    with open(model_dir / "lm_itos.pkl", "wb") as f:
-        pickle.dump(learner.data.vocab.itos, f)
+    with open(model_dir / "lm_itos.pkl", "wb") as itos_file:
+        pickle.dump(learner.data.vocab.itos, itos_file)
+    with open(model_dir / "model_hparams.json", "w") as model_hparams_file:
+        json.dump(model_hparams, model_hparams_file, indent=2)
 
     # TODO: store train / val metrics
-    # store model architecture config -> needed for model loading, add tokenizer to config
 
 
 def evaluate_lm(data_path, model_dir, train=False, custom_pp=False):
@@ -117,14 +117,12 @@ def evaluate_lm(data_path, model_dir, train=False, custom_pp=False):
         "", data_df, data_df, text_cols=0, tokenizer=Tokenizer(lang="xx"),
         vocab=Vocab(itos))
 
-    awd_lstm_lm_config = dict(
-        emb_sz=100, n_hid=256, n_layers=3, pad_token=1, qrnn=False, bidir=False, output_p=0.1,
-        hidden_p=0.15, input_p=0.25, embed_p=0.02, weight_p=0.2, tie_weights=True, out_bias=True)
-
-    learner = lm_learner(data, AWD_LSTM, model_dir, pretrained=True, config=awd_lstm_lm_config)
+    with open(model_dir / "model_hparams.json", "r") as model_hparams_file:
+        model_hparams = json.load(model_hparams_file)
+    learner = lm_learner(data, AWD_LSTM, model_dir, pretrained=True, config=model_hparams)
+    
     loss, acc = learner.validate()
     print("Loss: {}, Perplexity: {}, Accuracy: {}".format(loss, exp(loss), acc))
-
     if custom_pp:
         print("Custom perplexity: {}".format(evaluate_perplexity(learner, data_lm.valid_ds.x)))
 
