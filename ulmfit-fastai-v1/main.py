@@ -16,8 +16,8 @@ python main.py prepare_lm_dataset zlocin-a-trest.csv zlocin-a-trest --min_freq=1
 
 python main.py train_lm lm_dataset trained_lm --epochs=5
 
-python main.py evaluate_lm zlocin-a-trest trained_lm
-python main.py evaluate_lm lm_dataset trained_lm
+python main.py evaluate_lm sk-featured-smaller.csv trained_lm
+python main.py evaluate_lm zlocin-a-trest.csv trained_lm
 
 python main.py prepare_clas_dataset clas-alza.csv clas_dataset
 """
@@ -89,6 +89,8 @@ def train_lm(data_dir, model_dir, epochs=12, lr=3e-4):
     loss, acc = learner.validate()
     print("Validation - Loss: {}, Perplexity: {}, Accuracy: {}".format(loss, exp(loss), acc))
 
+    if not os.path.exists(model_dir):
+        os.mkdir(model_dir)
     model_dir = Path(model_dir)
     torch.save(learner.model.state_dict(), model_dir / "lm_wgts.pth")
     with open(model_dir / "lm_itos.pkl", "wb") as f:
