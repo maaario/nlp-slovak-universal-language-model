@@ -20,23 +20,24 @@ def csv_to_train_valid_df(csv_path, valid_split):
     return train_df, valid_df
 
 
-def evaluate_perplexity(learner, text):
+def evaluate_perplexity(learner, text_list):
     """
-    Evaluates perplexity of a model using model learner and text string.
+    Evaluates perplexity of a model using model learner and a list of texts.
     """
     # TODO: paralellize / batch perplexity computation
-    learner.model.reset()
     num_words = 0
     log_prob = 0
 
-    word_tensor, y = learner.data.one_item("")
+    for text in tqdm(text_list):
+        learner.model.reset()
+        word_tensor, y = learner.data.one_item("xxbos")
 
-    for word in tqdm(text.split()):
-        idx = learner.data.vocab.stoi[word]
-        predicted_probs = learner.pred_batch(batch=(word_tensor, y))[0][-1]
-        log_prob += log10(predicted_probs[idx])
-        num_words += 1
-        word_tensor = word_tensor.new_tensor([idx])[None]
+        for word in str(text).split()[1:]:
+            idx = learner.data.vocab.stoi[word]
+            predicted_probs = learner.pred_batch(batch=(word_tensor, y))[0][-1]
+            log_prob += log10(predicted_probs[idx])
+            num_words += 1
+            word_tensor = word_tensor.new_tensor([idx])[None]
 
     return 10 ** (- log_prob / num_words)
 
