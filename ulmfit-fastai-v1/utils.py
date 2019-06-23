@@ -7,13 +7,15 @@ import pandas as pd
 from tqdm import tqdm
 
 
-def csv_to_train_valid_df(csv_path, valid_split):
+def csv_to_train_valid_df(csv_path, valid_split, seed=42):
     """
     Reads csv file and splits records to training and validation pandas dataframes.
     """
+    gen = np.random.RandomState(seed=seed)
+
     df = pd.read_csv(csv_path, header=None)
 
-    df = df.iloc[np.random.permutation(len(df))]
+    df = df.iloc[gen.permutation(len(df))]
     cut = int(valid_split * len(df)) + 1
     train_df, valid_df = df[cut:], df[:cut]
 
