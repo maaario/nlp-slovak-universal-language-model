@@ -94,7 +94,7 @@ def clas_learner(data, arch, model_dir, config=None, drop_mult=1., pretrained=0,
     learner = LanguageLearner(data, model, split_func=meta['split_clas'], **learn_kwargs)
     learner.path = model_dir
     learner.model_dir = Path()
-    
+
     if pretrained > 0:
         if pretrained == 1:
             learner.load_encoder("lm_finetuned_encoder")
@@ -103,5 +103,5 @@ def clas_learner(data, arch, model_dir, config=None, drop_mult=1., pretrained=0,
                 learner.path / "clas_wgts.pth",
                 learner.path / "clas_itos.pkl")
         learner.freeze()
-    
+
     return learner
