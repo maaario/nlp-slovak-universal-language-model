@@ -24,9 +24,10 @@ def evaluate_perplexity(learner, text_list):
     """
     Evaluates perplexity of a model using model learner and a list of texts.
     """
-    # TODO: paralellize / batch perplexity computation
     num_words = 0
     log_prob = 0
+    num_unk = 0
+    log_prob_unk = 0
 
     for text in tqdm(text_list):
         learner.model.reset()
@@ -35,11 +36,24 @@ def evaluate_perplexity(learner, text_list):
         for word in str(text).split()[1:]:
             idx = learner.data.vocab.stoi[word]
             predicted_probs = learner.pred_batch(batch=(word_tensor, y))[0][-1]
+
             log_prob += log10(predicted_probs[idx])
             num_words += 1
+
+            if learner.data.vocab.itos[idx] == "xxunk":
+                num_unk += 1
+                log_prob_unk += log10(predicted_probs[idx])
+
             word_tensor = word_tensor.new_tensor([idx])[None]
 
-    return 10 ** (- log_prob / num_words)
+    perplexity = 10 ** (- log_prob / num_words)
+
+    # Contribution of OOV words to perplexity - to compare with irstlm (compile-lm.cpp:406) 
+    # This implementation is a bit incorrect since the final number of words in PPwp should be 
+    # num_words - num_unk, but to enable comparison, we stick to original implementation.
+    PPwp = perplexity * (1 - 10 ** (log_prob_unk / num_words))
+
+    return perplexity, num_unk / num_words, PPwp
 
 
 def lm_learner(data, arch, model_dir, config=None, drop_mult=1., pretrained=True,
