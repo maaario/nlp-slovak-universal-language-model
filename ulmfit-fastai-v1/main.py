@@ -102,7 +102,7 @@ def train_lm(data_dir, model_dir, epochs=12, lr=3e-4, pretrained=False):
     # TODO: store train / val metrics
 
 
-def evaluate_lm(data_path, model_dir, train=False, custom_pp=False):
+def evaluate_lm(data_path, model_dir, custom_pp=False):
     """
     Evaluate metrics of a trained LM using any dataset of texts in csv.
 
@@ -122,11 +122,12 @@ def evaluate_lm(data_path, model_dir, train=False, custom_pp=False):
     with open(model_dir / "model_hparams.json", "r") as model_hparams_file:
         model_hparams = json.load(model_hparams_file)
     learner = lm_learner(data, AWD_LSTM, model_dir, pretrained=True, config=model_hparams)
-    
+
     loss, acc = learner.validate()
     print("Loss: {}, Perplexity: {}, Accuracy: {}".format(loss, exp(loss), acc))
     if custom_pp:
-        print("Custom perplexity: {}".format(evaluate_perplexity(learner, data_lm.valid_ds.x)))
+        print("Custom perplexity: {}, Fraction OOV: {}, PPwp: {}".format(
+            *evaluate_perplexity(learner, data.valid_ds.x)))
 
 if __name__ == '__main__':
     fire.Fire()
