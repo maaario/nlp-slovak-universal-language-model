@@ -2,22 +2,12 @@ import json
 from math import exp
 import os
 import pickle
-import sys
 
 from fastai.text import *
 import fire
-import numpy as np
-import torch
 
-from utils import *
+from utils import lm_learner, evaluate_perplexity
 
-"""
-Example usage:
-python main.py prepare_lm_dataset lm_dataset.csv lm_dataset
-python main.py train_lm lm_dataset trained_lm
-python main.py evaluate_lm lm_dataset.csv trained_lm    # optional
-python main.py prepare_clas_dataset clas_dataset.csv clas_dataset
-"""
 
 def evaluate_lm(data_path, model_dir, custom_pp=False):
     """
@@ -47,4 +37,4 @@ def evaluate_lm(data_path, model_dir, custom_pp=False):
             *evaluate_perplexity(learner, data.valid_ds.x)))
 
 if __name__ == '__main__':
-    fire.Fire()
+    fire.Fire(evaluate_lm)
