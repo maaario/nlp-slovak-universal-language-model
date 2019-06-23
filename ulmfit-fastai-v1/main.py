@@ -20,11 +20,12 @@ python main.py prepare_clas_dataset clas_dataset.csv clas_dataset
 """
 
 
-def prepare_lm_dataset(input_path, output_dir, valid_split=0.2, min_freq=2, seed=42):
+def prepare_lm_dataset(input_path, output_dir=None, valid_split=0.2, min_freq=2, seed=42):
     """
     Reads .csv file with texts for training LM model, splits it into training and validation sets,
     tokenizes and saves the dataset.
     """
+    output_dir = (output_dir or os.path.dirname(input_path))
     np.random.seed(seed)
     train_df, valid_df = csv_to_train_valid_df(input_path, valid_split)
 
@@ -43,12 +44,13 @@ def prepare_lm_dataset(input_path, output_dir, valid_split=0.2, min_freq=2, seed
         f.write("\n".join(map(str, list(data_lm.valid_ds.x))))
 
 
-def prepare_clas_dataset(input_path, output_dir, valid_split=0.2, seed=42):
+def prepare_clas_dataset(input_path, output_dir=None, valid_split=0.2, seed=42):
     """
     Reads .csv file with texts in first column and labels in second column.
     Splits it into training and validation sets, tokenizes and saves datasets for fine-tuning and
     for classification.
     """
+    output_dir = (output_dir or os.path.dirname(input_path))
     np.random.seed(seed)
     train_df, valid_df = csv_to_train_valid_df(input_path, valid_split)
 
