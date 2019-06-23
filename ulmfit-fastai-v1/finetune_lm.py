@@ -6,7 +6,7 @@ import fire
 from utils import *
 
 
-def finetune_lm(data_dir, model_dir, cyc_len=25, lr=4e-3, lr_factor=1/2.6):
+def finetune_lm(data_dir, model_dir, class_dir=None, cyc_len=25, lr=4e-3, lr_factor=1/2.6):
     """
     Finetunes the provided language model on the given data, uses
     discriminative fine-tuning and slanted triangular learning rates.
@@ -20,11 +20,13 @@ def finetune_lm(data_dir, model_dir, cyc_len=25, lr=4e-3, lr_factor=1/2.6):
     """
     data_lm = load_data(data_dir, "data_lm.pkl")
     model_dir = Path(model_dir)
+    class_dir = (class_dir or os.path.basename(os.path.dirname(data_dir)))
+    class_dir = Path(class_dir)
 
     with open(model_dir / "model_hparams.json", "r") as model_hparams_file:
         model_hparams = json.load(model_hparams_file)
     learner = lm_learner(data_lm, AWD_LSTM, model_dir, pretrained=True, config=model_hparams)
-    learner.model_dir = Path()
+    learner.model_dir = class_dir
     learner.unfreeze()
 
     # Calculate learning rates for each layer.

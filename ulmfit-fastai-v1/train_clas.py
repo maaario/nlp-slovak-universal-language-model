@@ -1,4 +1,5 @@
 import sys
+import os
 
 from fastai.text import *
 import fire
@@ -6,13 +7,14 @@ import fire
 from utils import *
 
 
-def train_clas(data_dir, model_dir, cyc_len=1, lr=4e-3, lr_factor=1/2.6):
+def train_clas(data_dir, model_dir, class_dir=None, cyc_len=1, lr=4e-3, lr_factor=1/2.6):
     """
     Finetunes the classifier on the given classification dataset, starting
     with the given language model.
     <data_dir>: folder where the dataset is located
-    <model_dir>: where the model (or more concretely, the encoder part)
-        is located; the decoder is constructed ad-hoc
+    <model_dir>: where the language model is located
+    <class_dir>: relative to model_dir, where is the finetuned LM and
+        where should the classifier model be stored?
     <cyc_len>: Determines the number of epochs dedicated to finetuning each
         layer. That is, firstly the last layer group is unfrozen and train for
         <cyc_len> epochs, then the second to last group is unfrozen and
@@ -26,11 +28,13 @@ def train_clas(data_dir, model_dir, cyc_len=1, lr=4e-3, lr_factor=1/2.6):
     """
     data_lm = load_data(data_dir, "data_lm.pkl")
     model_dir = Path(model_dir)
+    class_dir = (class_dir or os.path.basename(os.path.dirname(data_dir)))
+    class_dir = Path(class_dir)
 
     with open(model_dir / "model_hparams.json", "r") as model_hparams_file:
         model_hparams = json.load(model_hparams_file)
     learner = lm_learner(data_lm, AWD_LSTM, model_dir, pretrained=False, config=model_hparams)
-    learner.model_dir = Path()
+    learner.model_dir = class_dir
     learner.load_encoder("lm_encoder")
 
     # Calculate learning rates for each layer.
