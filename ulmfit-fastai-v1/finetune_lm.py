@@ -13,15 +13,15 @@ def finetune_lm(data_dir, model_dir, class_dir=None, cyc_len=25, lr=4e-3, lr_fac
 
     <data_dir>: the directory from which to take input data
     <model_dir>: where the pretrained model is located
-    <cyc_len>: cycle length (also the number of epochs -- only 1 cycle is done)
+    <cyc_len>: number of epochs. Since we are using the one cycle learning
+        rate scheduler, we call it <cyc_len> (as "cycle length").
     <lr>: learning rate at the last layer
     <lr_factor>: learning rate of layer n is layerning rate at layer (n+1)
         times this
     """
-    data_lm = load_data(data_dir, "data_lm.pkl")
+    data_lm = load_data(data_dir, "data_finetune_lm.pkl")
     model_dir = Path(model_dir)
-    class_dir = (class_dir or os.path.basename(os.path.dirname(data_dir)))
-    class_dir = Path(class_dir)
+    class_dir = (Path(class_dir) if class_dir else os.path.basename(Path(data_dir)))
 
     with open(model_dir / "model_hparams.json", "r") as model_hparams_file:
         model_hparams = json.load(model_hparams_file)
@@ -34,7 +34,7 @@ def finetune_lm(data_dir, model_dir, class_dir=None, cyc_len=25, lr=4e-3, lr_fac
     lrs = [lr * lr_factor**i for i in range(num_layers)][::-1]
 
     learner.fit_one_cycle(cyc_len=cyc_len, max_lr=lrs, div_factor=32, pct_start=0.1)
-    learner.save_encoder("lm_encoder")
+    learner.save_encoder("lm_finetuned")
 
 
 if __name__ == '__main__':

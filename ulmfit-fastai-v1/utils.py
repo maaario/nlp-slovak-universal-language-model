@@ -74,3 +74,28 @@ def lm_learner(data, arch, model_dir, config=None, drop_mult=1., pretrained=True
             learner.path / "lm_itos.pkl")
         learner.freeze()
     return learner
+
+def clas_learner(data, arch, model_dir, class_dir, config=None, drop_mult=1., pretrained=0,
+                 **learn_kwargs):
+    """
+    Constructs a classifier for the <data>, and binds it to the folder <model_dir>.
+    If pretrained is 1, loads the finetuned language model from <model_dir>.
+    If pretrained is 2, loads the entire classifier from <model_dir>,
+    otherwise the decoder is constructed ad-hoc. Returns the resulting learner.
+    """
+    model_dir = Path(model_dir)
+    num_classes = len(set(data.label_list.y))
+    model = get_text_classifier(arch, len(data.vocab.itos), num_classes, config=config, drop_mult=drop_mult)
+    meta = _model_meta[arch]
+    learner = LanguageLearner(data, model, split_func=meta['split_clas'], **learn_kwargs)
+    learner.path = model_dir
+    learner.model_dir = class_dir
+    if pretrained > 0:
+        if pretrained == 1:
+            learner.load_encoder("lm_finetuned")
+        elif pretrained == 2:
+            learner.load_pretrained(
+                learner.path / class_dir / "clas_wgts.pth",
+                learner.path / "lm_itos.pkl")
+        learner.freeze()
+    return learner

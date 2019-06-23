@@ -61,7 +61,7 @@ def prepare_clas_dataset(input_path, output_dir=None, valid_split=0.2, seed=42):
     data_finetune_lm = TextLMDataBunch.from_df(
         output_dir, train_df, valid_df, tokenizer=Tokenizer(lang="xx"), text_cols=0)
     data_clas = TextClasDataBunch.from_df(
-        output_dir, train_df, valid_df, tokenizer=Tokenizer(lang="xx", text_cols=0, label_cols=1),
+        output_dir, train_df, valid_df, tokenizer=Tokenizer(lang="xx"), text_cols=0, label_cols=1,
         vocab=data_finetune_lm.train_ds.vocab, bs=32)
 
     data_finetune_lm.save('data_finetune_lm.pkl')
