@@ -1,9 +1,12 @@
-import sys
+import json
+from pathlib import Path
+import pickle
 
-from fastai.text import *
+from fastai.text import AWD_LSTM, load_data
 import fire
+import torch
 
-from utils import *
+from utils import lm_learner
 
 
 def finetune_lm(data_dir, model_dir, dest_dir=None, cyc_len=25, lr=4e-3, lr_factor=1/2.6):
@@ -11,19 +14,22 @@ def finetune_lm(data_dir, model_dir, dest_dir=None, cyc_len=25, lr=4e-3, lr_fact
     Finetunes the provided language model on the given data, uses
     discriminative fine-tuning and slanted triangular learning rates.
 
-    <data_dir>: the directory from which to take input data
-    <model_dir>: where the pretrained model is located
-    <dest_dir>: where to store the finetuned language model. Defaults
-        to <model_dir>/<dataset_name> (name of the data_dir last folder).
-    <cyc_len>: number of epochs. Since we are using the one cycle learning
-        rate scheduler, we call it <cyc_len> (as "cycle length").
-    <lr>: learning rate at the last layer
-    <lr_factor>: learning rate of layer n is layerning rate at layer (n+1)
-        times this
+    Attributes:
+        data_dir (str): A directory from which to take input data
+        model_dir (str): A directory where the pretrained model is located
+        dest_dir (str): A directory where to store the finetuned language model. Defaults
+            to `model_dir` / name of the `data_dir` last folder.
+        cyc_len (int): Number of epochs for one cycle learning rate scheduler. For more details
+            refer to https://docs.fast.ai/callbacks.one_cycle.html#The-1cycle-policy.
+        lr (float): Learning rate at the last layer.
+        lr_factor (float): Learning rate at layer n is learning rate at layer (n+1) times
+            `lr_factor`.
     """
+    data_dir, model_dir = Path(data_dir), Path(model_dir)
+    dest_dir = (Path(dest_dir) if dest_dir else model_dir / data_dir.name)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
     data_lm = load_data(data_dir, "data_finetune_lm.pkl")
-    model_dir = Path(model_dir)
-    dest_dir = (Path(dest_dir) if dest_dir else model_dir / os.path.basename(Path(data_dir)))
 
     with open(model_dir / "model_hparams.json", "r") as model_hparams_file:
         model_hparams = json.load(model_hparams_file)
@@ -37,7 +43,7 @@ def finetune_lm(data_dir, model_dir, dest_dir=None, cyc_len=25, lr=4e-3, lr_fact
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=cyc_len, max_lr=lrs, div_factor=32, pct_start=0.1)
 
-    # Save EVERYthing.
+    # Save everything.
     learner.save_encoder("lm_finetuned_encoder")
     torch.save(learner.model.state_dict(), dest_dir / "lm_finetuned_wgts.pth")
     with open(dest_dir / "lm_finetuned_itos.pkl", "wb") as itos_file:
@@ -46,5 +52,5 @@ def finetune_lm(data_dir, model_dir, dest_dir=None, cyc_len=25, lr=4e-3, lr_fact
         json.dump(model_hparams, model_hparams_file, indent=2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(finetune_lm)

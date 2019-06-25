@@ -1,6 +1,7 @@
 from math import log10
+from pathlib import Path
 
-from fastai.text import *
+from fastai.text import get_language_model, get_text_classifier, LanguageLearner
 from fastai.text.learner import _model_meta
 import numpy as np
 import pandas as pd
@@ -50,12 +51,12 @@ def evaluate_perplexity(learner, text_list):
 
     perplexity = 10 ** (- log_prob / num_words)
 
-    # Contribution of OOV words to perplexity - to compare with irstlm (compile-lm.cpp:406) 
-    # This implementation is a bit incorrect since the final number of words in PPwp should be 
+    # Contribution of OOV words to perplexity - to compare with irstlm's PPwp (compile-lm.cpp:406)
+    # This implementation is a bit incorrect since the final number of words in PPwp should be
     # num_words - num_unk, but to enable comparison, we stick to original implementation.
-    PPwp = perplexity * (1 - 10 ** (log_prob_unk / num_words))
+    perplexity_oov = perplexity * (1 - 10 ** (log_prob_unk / num_words))
 
-    return perplexity, num_unk / num_words, PPwp
+    return perplexity, num_unk / num_words, perplexity_oov
 
 
 def lm_learner(data, arch, model_dir, config=None, drop_mult=1., pretrained=True,
@@ -68,7 +69,7 @@ def lm_learner(data, arch, model_dir, config=None, drop_mult=1., pretrained=True
     """
     model = get_language_model(arch, len(data.vocab.itos), config=config, drop_mult=drop_mult)
     meta = _model_meta[arch]
-    learner = LanguageLearner(data, model, split_func=meta['split_lm'], **learn_kwargs)
+    learner = LanguageLearner(data, model, split_func=meta["split_lm"], **learn_kwargs)
     learner.path = Path(model_dir)
     learner.model_dir = Path()
     if pretrained:
@@ -78,18 +79,23 @@ def lm_learner(data, arch, model_dir, config=None, drop_mult=1., pretrained=True
         learner.freeze()
     return learner
 
+
 def clas_learner(data, arch, model_dir, config=None, drop_mult=1., pretrained=0,
                  **learn_kwargs):
     """
-    Constructs a classifier for the <data>, and binds it to the folder <model_dir>.
-    If pretrained is 1, loads the finetuned language model from <model_dir>.
-    If pretrained is 2, loads the entire classifier from <model_dir>,
-    otherwise the decoder is constructed ad-hoc. Returns the resulting learner.
+    Constructs a classifier for `data`, and binds it to the folder `model_dir`.
+    Returns the resulting learner.
+
+    If `pretrained` is 1, a finetuned language model is loaded from `model_dir` - use this option
+    when training a new classifier.
+    If `pretrained` is 2, an entire classifier is loaded from `model_dir`.
+    Otherwise, an uninitialized encoder is used.
     """
     model_dir = Path(model_dir)
-    
+
     num_classes = len(set(data.label_list.y))
-    model = get_text_classifier(arch, len(data.vocab.itos), num_classes, config=config, drop_mult=drop_mult)
+    model = get_text_classifier(
+        arch, len(data.vocab.itos), num_classes, config=config, drop_mult=drop_mult)
     meta = _model_meta[arch]
     learner = LanguageLearner(data, model, split_func=meta['split_clas'], **learn_kwargs)
     learner.path = model_dir
