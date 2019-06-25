@@ -9,7 +9,7 @@ import torch
 from utils import clas_learner
 
 
-def train_clas(data_dir, model_dir, dest_dir=None, cyc_len=1, lr=4e-3, lr_factor=1/2.6,
+def train_clas(data_dir, model_dir, dest_dir=None, cyc_len=1, lr=0.01, lr_factor=1/2.6,
                pretrained=1):
     """
     Trains a classifier on the given classification dataset, starting with the given language model.

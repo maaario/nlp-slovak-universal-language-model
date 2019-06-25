@@ -27,7 +27,8 @@ def train_lm(data_dir, model_dir, epochs=12, lr=3e-4, pretrained=False, hparam_u
     """
     data_lm = load_data(data_dir, "data_lm.pkl")
 
-    model_hparams = awd_lstm_lm_config.update(hparam_updates)
+    model_hparams = awd_lstm_lm_config
+    model_hparams.update(hparam_updates)
     learner = lm_learner(
         data_lm, AWD_LSTM, model_dir, pretrained=pretrained, config=model_hparams)
     learner.fit(epochs, lr)
