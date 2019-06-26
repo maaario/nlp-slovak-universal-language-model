@@ -68,6 +68,9 @@ def train_clas(data_dir, model_dir, dest_dir=None, cyc_len=1, lr=0.01, lr_factor
         learner.freeze_to(i)
         learner.fit_one_cycle(cyc_len=cyc_len, max_lr=lrs, div_factor=32, pct_start=0.1)
 
+    metric_data = learner.validate()
+    print("Validation - Loss: {}, Accuracy: {}, F1-macro: {}, F1-wighted: {}".format(*metric_data))
+
     # Save everything.
     learner.save_encoder("clas_encoder")
     torch.save(learner.model.state_dict(), dest_dir / "clas_wgts.pth")
