@@ -11,7 +11,8 @@ import torch
 from utils import lm_learner
 
 
-def train_lm(data_dir, model_dir, epochs=12, lr=3e-4, pretrained=False, hparam_updates=dict()):
+def train_lm(data_dir, model_dir, epochs=12, lr=3e-4, use_pretrained_lm=False,
+             hparam_updates=dict()):
     """
     Trains a new language model using the provided dataset.
 
@@ -20,17 +21,18 @@ def train_lm(data_dir, model_dir, epochs=12, lr=3e-4, pretrained=False, hparam_u
         model_dir (str): A directory where to store the trained model.
         epochs (int): Number of epochs for model training.
         lr (float): Learning rate.
-        pretrained (bool): If `pretrained` is set, a trained model is first loaded from `model_dir`
-            and then it is trained with the provided dataset.
-        hparam_updates (dict): A dictionary with updates of model hyper-parametrs. By default,
-            a default configuration of fastai's model is used.
+        use_pretrained_lm (bool): If `use_pretrained_lm` is set, a trained language model is first
+            loaded from `model_dir`and then it is trained with the provided dataset.
+        hparam_updates (dict): A dictionary with updates of model hyper-parameters. By default,
+            a configuration from fastai's awd lstm model is used. For more details see
+            https://github.com/fastai/fastai/blob/master/fastai/text/models/awd_lstm.py.
     """
     data_lm = load_data(data_dir, "data_lm.pkl")
 
     model_hparams = awd_lstm_lm_config
     model_hparams.update(hparam_updates)
     learner = lm_learner(
-        data_lm, AWD_LSTM, model_dir, pretrained=pretrained, config=model_hparams)
+        data_lm, AWD_LSTM, model_dir, pretrained=use_pretrained_lm, config=model_hparams)
     learner.fit(epochs, lr)
 
     loss, acc = learner.validate(learner.data.train_dl)
